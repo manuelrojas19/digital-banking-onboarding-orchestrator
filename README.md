@@ -1,6 +1,6 @@
-# Digital Onboarding API
+# Digital Onboarding Orchestrator API
 
-This project simulates an API that communicates with Keycloak to register a user simulating a digital onboarding process and providing authentication capabilities. The API is built using Spring with Kotlin, and the project includes integration testing with Testcontainers and deployment using Docker Compose.
+This project simulates an Orchestrator API that communicates with Keycloak to register a user simulating a digital banking onboarding process and also provides authentication capabilities. The API is built using Spring with Kotlin, and the project includes integration testing with Testcontainers and deployment using Docker Compose.
 
 ## Features
 
