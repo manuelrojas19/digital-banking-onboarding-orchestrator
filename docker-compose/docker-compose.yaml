@@ -1,0 +1,93 @@
+version: "3"
+
+services:
+#  onboarding-srv:
+#    platform: linux/amd64
+#    image: manuelrojas19/onboarding:1.0.9-SNAPSHOT
+#    environment:
+#      APP_CONFIG_KEYCLOAK_URL: http://keycloak-srv:8080
+#      APP_CONFIG_KEYCLOAK_REALM: onboarding
+#      APP_CONFIG_KEYCLOAK_CLIENT_ID: onboarding-service
+#      APP_CONFIG_KEYCLOAK_CLIENT_SECRET: 6vk7o9CDYCGpOtrvxgCZTJfyUcCkSdxC
+#    ports:
+#      - "8081:8081"
+#    depends_on:
+#      keycloak-srv:
+#        condition: service_started
+#    networks:
+#      onboarding_project:
+
+  keycloak-srv:
+    image: quay.io/keycloak/keycloak:23.0.6
+    command: start-dev --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL_HOST: postgres-srv
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: password
+      KC_DB_SCHEMA: public
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_LOG_LEVEL: ALL
+      KEYCLOAK_IMPORT: /opt/keycloak/data/import/realm-export.json
+    volumes:
+      - ./auth/import:/opt/keycloak/data/import
+    ports:
+      - "8091:8080"
+    depends_on:
+      postgres-srv:
+        condition: service_healthy
+    networks:
+      onboarding_project:
+
+  postgres-srv:
+    image: postgres:15.5-alpine3.19
+    command: postgres -c 'max_connections=200' && postgres -c 'shared_buffers=24MB'
+    environment:
+      # Environment Variables especially for Postgres
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: password
+    healthcheck:
+      test: "exit 0"
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    networks:
+      onboarding_project:
+
+  zookeeper:
+    platform: linux/amd64
+    image: wurstmeister/zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      onboarding_project:
+
+  kafka:
+    platform: linux/amd64
+    image: wurstmeister/kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    expose:
+      - "9093"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9093,OUTSIDE://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_LISTENERS: INSIDE://0.0.0.0:9093,OUTSIDE://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CREATE_TOPICS: "user-created-topic:1:1,send-email-topic:1:1"
+    networks:
+      onboarding_project:
+
+networks:
+  onboarding_project:

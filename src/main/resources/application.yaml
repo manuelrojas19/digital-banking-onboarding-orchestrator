@@ -1,0 +1,53 @@
+app:
+  config:
+    keycloak:
+      url: http://localhost:8091
+      realm: onboarding
+      client-id: onboarding-service
+      client-secret: 6vk7o9CDYCGpOtrvxgCZTJfyUcCkSdxC
+    kafka:
+      topics:
+        user-created: user-created-topic
+        send-email: send-email-topic
+    api:
+      auth:
+        base-uri: /api/v1/auth
+        sign-up-uri: /sign-up
+        login-uri: /login
+        refresh-uri: /refresh-token
+        greetings-uri: /greetings
+server:
+  port: 8081
+spring:
+  kafka:
+    producer:
+      bootstrap-servers: http://localhost:9092
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${app.config.keycloak.url}/realms/${app.config.keycloak.realm}/protocol/openid-connect/certs
+      client:
+        registration:
+          keycloak:
+            provider: keycloak
+            authorization-grant-type: authorization_code
+            scope: openid
+            response-type: code
+            redirect-uri: ${app.config.keycloak.url}
+            client-id: ${app.config.keycloak.client-id}
+            client-secret: ${app.config.keycloak.client-secret}
+        provider:
+          keycloak:
+            authorization-uri: ${app.config.keycloak.url}/realms/${app.config.keycloak.realm}/protocol/openid-connect/auth
+            token-uri: ${app.config.keycloak.url}/realms/${app.config.keycloak.realm}/protocol/openid-connect/token
+            user-info-uri: ${app.config.keycloak.url}/realms/${app.config.keycloak.realm}/protocol/openid-connect/userinfo
+            jwk-set-uri: ${app.config.keycloak.url}/realms/${app.config.keycloak.realm}/protocol/openid-connect/certs
+            user-info-authentication-method: header
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'

@@ -1,0 +1,88 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+plugins {
+	id 'org.springframework.boot' version '3.2.2'
+	id 'io.spring.dependency-management' version '1.1.4'
+	id 'org.jetbrains.kotlin.jvm' version '1.9.22'
+	id 'org.jetbrains.kotlin.plugin.spring' version '1.9.22'
+	id 'com.google.cloud.tools.jib' version '3.3.1'
+}
+
+group = 'com.manuelr.microservices'
+version = '1.0.9-SNAPSHOT'
+
+java {
+	sourceCompatibility = '17'
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+configurations.configureEach {
+	exclude group: "commons-logging", module: "commons-logging"
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	annotationProcessor 'org.projectlombok:lombok'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+	implementation 'org.springframework.kafka:spring-kafka'
+	implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core'
+	implementation 'org.keycloak:keycloak-admin-client:23.0.7'
+	implementation 'org.keycloak:keycloak-authz-client:23.0.7'
+	implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
+	implementation 'org.jetbrains.kotlin:kotlin-reflect'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	testImplementation platform('org.testcontainers:testcontainers-bom:1.19.5')
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.testcontainers:junit-jupiter'
+	testImplementation 'io.rest-assured:rest-assured:5.4.0'
+}
+
+tasks.withType(KotlinCompile).configureEach {
+	kotlinOptions {
+		freeCompilerArgs += '-Xjsr305=strict'
+		jvmTarget = '17'
+	}
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+jar {
+	manifest {
+		attributes 'Main-Class': 'com.manuelr.microservices.onboarding.OnboardingApplication'
+	}
+}
+
+def dockerRepository = System.getenv("DOCKER_REPOSITORY")
+def dockerUsername = System.getenv("DOCKER_USERNAME")
+def dockerPassword = System.getenv("DOCKER_PASSWORD")
+
+jib {
+	from {
+		image = 'amazoncorretto:17-alpine-jdk'
+	}
+	to {
+		image = dockerRepository
+		auth {
+			username = dockerUsername
+			password = dockerPassword
+		}
+	}
+	container {
+		mainClass = 'com.manuelr.microservices.onboarding.OnboardingApplicationKt'
+		jvmFlags = ['-Xms512m', '-Xmx1024m']
+	}
+}
